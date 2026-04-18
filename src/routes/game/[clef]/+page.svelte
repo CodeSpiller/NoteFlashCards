@@ -6,8 +6,12 @@
 	import { settings } from '$lib/settings.js';
 
 	export let data;
-	$: clef = data.clef;
-	$: pool = clef.notes;
+	// Snapshot at mount time. `data.clef` is stable for this component
+	// instance — users navigate home → clef → back, not clef → clef — so
+	// plain const avoids the `$:`-runs-after-script trap that would leave
+	// `pool` undefined when we initialize `current` below.
+	const clef = data.clef;
+	const pool = clef.notes;
 
 	const FEEDBACK_MS = 700;
 
