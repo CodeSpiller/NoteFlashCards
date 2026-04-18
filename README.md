@@ -13,6 +13,27 @@ Tap the gear icon on the home screen to open Settings. You can set the countdown
 
 You can also switch between **letter** note names (A, B, C, D, E, F, G) and **solfège** names (la, si, do, re, mi, fa, sol). Mapping: A=la, B=si, C=do, D=re, E=mi, F=fa, G=sol. The answer buttons in the game update immediately.
 
+## Deploy to GitHub Pages
+
+The repo is pre-wired for GitHub Pages. To publish it:
+
+1. Create an **empty** repo on github.com named `noteflashcards` (no README, no `.gitignore`, no license — the repo already has everything).
+2. Add the remote and push:
+
+   ```sh
+   git remote add origin https://github.com/<your-username>/noteflashcards.git
+   git push -u origin main
+   ```
+
+3. On github.com, open the repo → **Settings → Pages**, and under **Source** pick **GitHub Actions**.
+4. The first push already triggered the workflow. Watch it at the repo's **Actions** tab. When it finishes (1–2 min), your site is live at:
+
+   ```
+   https://<your-username>.github.io/noteflashcards/
+   ```
+
+Every subsequent push to `main` auto-deploys. Custom domain: add a `CNAME` file in `static/` and configure it in Pages settings.
+
 ## Run it
 
 First time:
