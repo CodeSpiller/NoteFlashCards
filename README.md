@@ -5,7 +5,10 @@ A mobile-first web app for practicing music note recognition.
 ## Game modes
 
 - **Treble Clef Notes** — a flashcard image appears; pick the correct letter before the timer runs out. If time runs out, the app advances to the next card automatically. The pool includes 20 notes ranging from `low-low-F` (well below the staff) through `high-B` (two ledger lines above).
-- _Bass Clef_, _Intervals_, and _Key Signatures_ are placeholders on the home screen for future modes.
+- **Bass Clef Notes** — same game against a 19-note bass-clef pool, from `low-B` through `high-F`.
+- _Intervals_ and _Key Signatures_ are placeholders on the home screen for future modes.
+
+Both clefs share the same game route (`/game/[clef]`) so the timer, scoring, feedback animations, and settings behave identically across them.
 
 ## Settings
 
@@ -67,21 +70,27 @@ npm run preview
 
 ```
 src/
-  app.html              # mobile viewport + theme-color meta
-  app.css               # CSS variables and resets
+  app.html                    # mobile viewport + theme-color meta
+  app.css                     # CSS variables and resets
   lib/
-    notes.js            # note pool (letter + image path) + round picker
+    notes.js                  # per-clef note pools + CLEFS registry + round picker
+    settings.js               # persisted settings store (timer, naming)
   routes/
-    +layout.svelte      # app shell (max-width, safe-area)
-    +page.svelte        # home screen — game mode list
-    game/treble/+page.svelte  # the note-identification game
+    +layout.svelte            # app shell (max-width, safe-area)
+    +layout.js                # prerender + no-SSR
+    +page.svelte              # home screen — game mode list
+    settings/+page.svelte     # settings screen
+    game/[clef]/+page.js      # dynamic load + prerender entries (treble, bass)
+    game/[clef]/+page.svelte  # the generic note-identification game
 static/
-  notes/treble/         # the 10 JPG flashcards
+  notes/treble/               # treble-clef flashcards (20)
+  notes/bass/                 # bass-clef flashcards (19)
 ```
 
 ## Tweaks
 
-- **Timer length** — edit `ROUND_MS` in `src/routes/game/treble/+page.svelte`.
-- **Note pool** — edit `TREBLE_NOTES` in `src/lib/notes.js`. To add a new card, drop a JPG into `static/notes/treble/` and add an entry with its letter and image path.
+- **Timer length** — now set via the Settings screen at runtime; default lives in `src/lib/settings.js`.
+- **Note pool** — edit `TREBLE_NOTES` / `BASS_NOTES` in `src/lib/notes.js`. To add a card, drop an image into `static/notes/<clef>/` and add an entry with its letter and image path.
+- **Add a new clef** — add its entry to `CLEFS` in `src/lib/notes.js`, add a card in the home screen's `modes` array, and add its id to `entries()` in `src/routes/game/[clef]/+page.js`.
 - **Colors** — edit the `:root` variables in `src/app.css`.
-- **Source images** — the originals live in `Pictures/SingleNotesTrebleClef/`; what the app actually serves is the copy in `static/notes/treble/`.
+- **Source images** — originals live in `Pictures/SingleNotesTrebleClef/` and `Pictures/SingleNotesBassClef/`; the app serves the copies under `static/notes/`.

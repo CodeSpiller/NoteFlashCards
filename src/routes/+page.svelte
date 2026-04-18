@@ -13,9 +13,10 @@
 		{
 			id: 'bass',
 			title: 'Bass Clef Notes',
-			subtitle: 'Coming soon',
+			subtitle: 'Name the note on the staff',
 			icon: '𝄢',
-			available: false
+			available: true,
+			href: `${base}/game/bass`
 		},
 		{
 			id: 'intervals',
