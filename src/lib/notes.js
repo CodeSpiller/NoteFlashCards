@@ -58,6 +58,7 @@ export const BASS_NOTES = [
 	{ id: 'E', letter: 'E', image: `${BASS_BASE}/bass-clef-E.png` },
 	// Above the bass staff (ledger lines)
 	{ id: 'high-F', letter: 'F', image: `${BASS_BASE}/bass-clef-high-F.png` },
+	{ id: 'high-G', letter: 'G', image: `${BASS_BASE}/bass-clef-high-G.png` },
 	{ id: 'high-high-F', letter: 'F', image: `${BASS_BASE}/bass-clef-high-high-F.png` }
 ];
 
