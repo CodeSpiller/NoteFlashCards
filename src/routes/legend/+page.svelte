@@ -48,15 +48,13 @@
 		Enable rotation lock on your phone to improve readability.
 	</p>
 
-	<div
-		class="image-wrap"
-		on:contextmenu|preventDefault
-		on:dragstart|preventDefault
-	>
+	<div class="image-wrap">
 		<img
 			src={current.src}
 			alt={current.alt}
 			draggable="false"
+			on:contextmenu|preventDefault
+			on:dragstart|preventDefault
 		/>
 	</div>
 
