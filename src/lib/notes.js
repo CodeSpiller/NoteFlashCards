@@ -57,7 +57,8 @@ export const BASS_NOTES = [
 	{ id: 'D', letter: 'D', image: `${BASS_BASE}/bass-clef-D.png` },
 	{ id: 'E', letter: 'E', image: `${BASS_BASE}/bass-clef-E.png` },
 	// Above the bass staff (ledger lines)
-	{ id: 'high-F', letter: 'F', image: `${BASS_BASE}/bass-clef-high-F.png` }
+	{ id: 'high-F', letter: 'F', image: `${BASS_BASE}/bass-clef-high-F.png` },
+	{ id: 'high-high-F', letter: 'F', image: `${BASS_BASE}/bass-clef-high-high-F.png` }
 ];
 
 // ---------- Clef registry ----------
