@@ -1,6 +1,7 @@
 <script>
 	import { base } from '$app/paths';
 	import { settings } from '$lib/settings.js';
+	import { displayName } from '$lib/notes.js';
 
 	export let data;
 	const clef = data.clef;
@@ -58,6 +59,9 @@
 					on:click={() => toggle(note.id)}
 				>
 					<img src={note.image} alt="" draggable="false" />
+					<span class="letter" aria-hidden="true">
+						{displayName(note.letter, $settings.noteNaming)}
+					</span>
 					<span class="eye" aria-hidden="true">
 						{#if isHidden}
 							<!-- eye-off: stroke-based, matches eye-open visually -->
@@ -250,6 +254,35 @@
 	}
 
 	.tile.hidden .eye {
+		color: #ffffff;
+		background: rgba(15, 23, 42, 0.88);
+	}
+
+	/* Letter/solfège badge. Same 30×30 footprint as .eye so the two
+	   corner indicators feel balanced. Font size caps at 14px so
+	   3-character solfège names like "sol" still fit inside the
+	   square without the badge growing bigger than the eye. */
+	.letter {
+		position: absolute;
+		top: 6px;
+		left: 6px;
+		width: 30px;
+		height: 30px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 10px;
+		font-size: 14px;
+		font-weight: 700;
+		line-height: 1;
+		color: #0f172a;
+		background: rgba(255, 255, 255, 0.85);
+		backdrop-filter: blur(4px);
+		-webkit-backdrop-filter: blur(4px);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+	}
+
+	.tile.hidden .letter {
 		color: #ffffff;
 		background: rgba(15, 23, 42, 0.88);
 	}
