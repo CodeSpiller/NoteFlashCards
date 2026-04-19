@@ -8,27 +8,30 @@ import { base } from '$app/paths';
 // Order below is roughly low → high pitch.
 const TREBLE_BASE = `${base}/notes/treble`;
 
+// Files are named <Letter><Octave>.png where Octave 1 = low, 2 = middle, 3 = high.
+// Order below is ascending pitch across three octaves.
 export const TREBLE_NOTES = [
-	{ id: 'low-low-F', letter: 'F', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-low-low-F.png` },
-	{ id: 'middle-C', letter: 'C', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-middle-C.jpg` },
-	{ id: 'low-E', letter: 'E', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-low-E.jpg` },
-	{ id: 'low-F', letter: 'F', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-low-F.jpg` },
-	{ id: 'low-G', letter: 'G', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-low-G.png` },
-	{ id: 'low-A', letter: 'A', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-low-A.png` },
-	{ id: 'low-B', letter: 'B', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-low-B.png` },
-	{ id: 'C', letter: 'C', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-C.jpg` },
-	{ id: 'D', letter: 'D', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-D.jpg` },
-	{ id: 'E', letter: 'E', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-E.jpg` },
-	{ id: 'F', letter: 'F', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-F.jpg` },
-	{ id: 'G', letter: 'G', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-G.jpg` },
-	{ id: 'A', letter: 'A', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-A.jpg` },
-	{ id: 'B', letter: 'B', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-B.jpg` },
-	{ id: 'high-C', letter: 'C', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-high-C.png` },
-	{ id: 'high-D', letter: 'D', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-high-D.png` },
-	{ id: 'high-E', letter: 'E', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-high-E.png` },
-	{ id: 'high-G', letter: 'G', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-high-G.png` },
-	{ id: 'high-A', letter: 'A', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-high-A.png` },
-	{ id: 'high-B', letter: 'B', image: `${TREBLE_BASE}/Treble-Clef-Notes-Quiz-high-B.png` }
+	{ id: 'C1', letter: 'C', image: `${TREBLE_BASE}/C1.png` },
+	{ id: 'D1', letter: 'D', image: `${TREBLE_BASE}/D1.png` },
+	{ id: 'E1', letter: 'E', image: `${TREBLE_BASE}/E1.png` },
+	{ id: 'F1', letter: 'F', image: `${TREBLE_BASE}/F1.png` },
+	{ id: 'G1', letter: 'G', image: `${TREBLE_BASE}/G1.png` },
+	{ id: 'A1', letter: 'A', image: `${TREBLE_BASE}/A1.png` },
+	{ id: 'B1', letter: 'B', image: `${TREBLE_BASE}/B1.png` },
+	{ id: 'C2', letter: 'C', image: `${TREBLE_BASE}/C2.png` },
+	{ id: 'D2', letter: 'D', image: `${TREBLE_BASE}/D2.png` },
+	{ id: 'E2', letter: 'E', image: `${TREBLE_BASE}/E2.png` },
+	{ id: 'F2', letter: 'F', image: `${TREBLE_BASE}/F2.png` },
+	{ id: 'G2', letter: 'G', image: `${TREBLE_BASE}/G2.png` },
+	{ id: 'A2', letter: 'A', image: `${TREBLE_BASE}/A2.png` },
+	{ id: 'B2', letter: 'B', image: `${TREBLE_BASE}/B2.png` },
+	{ id: 'C3', letter: 'C', image: `${TREBLE_BASE}/C3.png` },
+	{ id: 'D3', letter: 'D', image: `${TREBLE_BASE}/D3.png` },
+	{ id: 'E3', letter: 'E', image: `${TREBLE_BASE}/E3.png` },
+	{ id: 'F3', letter: 'F', image: `${TREBLE_BASE}/F3.png` },
+	{ id: 'G3', letter: 'G', image: `${TREBLE_BASE}/G3.png` },
+	{ id: 'A3', letter: 'A', image: `${TREBLE_BASE}/A3.png` },
+	{ id: 'B3', letter: 'B', image: `${TREBLE_BASE}/B3.png` }
 ];
 
 // ---------- Bass clef ----------
