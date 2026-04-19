@@ -241,6 +241,8 @@
 		on:pointercancel={handleCardPointerRelease}
 		on:pointerleave={handleCardPointerRelease}
 		on:keydown={handleCardKeyDown}
+		on:contextmenu|preventDefault
+		on:dragstart|preventDefault
 	>
 		<img src={current.note.image} alt="Note to identify" draggable="false" />
 	</div>
@@ -389,6 +391,16 @@
 		height: auto;
 		border-radius: 10px;
 		-webkit-user-drag: none;
+		-webkit-user-select: none;
+		user-select: none;
+		/* Disable iOS's long-press "save image / copy / share" callout. */
+		-webkit-touch-callout: none;
+		/* Let pointer + touch events fall through to the parent .card
+		   button, which routes them through our short-tap / long-press
+		   handler. This also prevents the OS from recognising the press
+		   as happening on an <img>, which suppresses the image context
+		   menu on both iOS and Android. */
+		pointer-events: none;
 	}
 
 	.card.flash-correct {

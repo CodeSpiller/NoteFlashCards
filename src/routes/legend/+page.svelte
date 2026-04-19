@@ -21,7 +21,11 @@
 		rotation lock).
 	</p>
 
-	<div class="image-wrap">
+	<div
+		class="image-wrap"
+		on:contextmenu|preventDefault
+		on:dragstart|preventDefault
+	>
 		<img
 			src={imageSrc}
 			alt="Ledger lines and note names for the treble and bass clefs"
@@ -99,5 +103,10 @@
 		height: auto;
 		border-radius: 10px;
 		-webkit-user-drag: none;
+		-webkit-user-select: none;
+		user-select: none;
+		/* Suppress the iOS long-press "save image / share" callout and
+		   its Android equivalent. */
+		-webkit-touch-callout: none;
 	}
 </style>
