@@ -167,16 +167,18 @@
 	>
 		<img src={current.note.image} alt="Note to identify" draggable="false" />
 	</div>
-	{#if feedback === 'reveal'}
-		<p class="reveal">answer is <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong></p>
+	{#if mode === 'reveal'}
+		<!-- Always reserve the reveal-sized slot so the image doesn't
+		     jump up when the answer text appears at the end of the timer. -->
+		<p class="reveal" class:reveal-hidden={feedback !== 'reveal'} aria-hidden={feedback !== 'reveal'}>
+			answer is <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong>
+		</p>
 	{:else if feedback === 'timeout'}
 		<p class="hint wrong-hint">Time's up — it was <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong></p>
 	{:else if feedback === 'wrong'}
 		<p class="hint wrong-hint">Nope — it was <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong></p>
 	{:else if feedback === 'correct'}
 		<p class="hint correct-hint">Correct!</p>
-	{:else if mode === 'reveal'}
-		<p class="hint muted">&nbsp;</p>
 	{:else}
 		<p class="hint muted">What note is this?</p>
 	{/if}
@@ -352,6 +354,15 @@
 		font-size: 30px;
 		font-weight: 800;
 		margin-left: 2px;
+	}
+
+	/* During the countdown in reveal mode we still render the reveal text
+	   (with the real answer) so the slot occupies the exact same height,
+	   but we make it invisible so the note isn't spoiled. `visibility:
+	   hidden` preserves layout; it's also not announced to screen
+	   readers. */
+	.reveal-hidden {
+		visibility: hidden;
 	}
 
 	.choices {
