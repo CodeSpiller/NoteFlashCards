@@ -69,7 +69,15 @@
 		pressActive = false;
 	}
 
-	function handleCardPointerDown() {
+	function handleCardPointerDown(e) {
+		// Keep receiving events from this finger even if it drifts outside the
+		// card's bounds. Without pointer capture, tiny finger wobble fires
+		// pointerleave and tears down the long-press.
+		try {
+			e.currentTarget.setPointerCapture?.(e.pointerId);
+		} catch {
+			// Not supported / already captured — safe to ignore.
+		}
 		// Pause everything that could change the screen while the user
 		// is holding: the countdown tick and any pending auto-advance.
 		// This works in both answer modes.
@@ -239,7 +247,6 @@
 		on:pointerdown={handleCardPointerDown}
 		on:pointerup={handleCardPointerRelease}
 		on:pointercancel={handleCardPointerRelease}
-		on:pointerleave={handleCardPointerRelease}
 		on:keydown={handleCardKeyDown}
 		on:contextmenu|preventDefault
 		on:dragstart|preventDefault
@@ -421,6 +428,12 @@
 		-webkit-user-select: none;
 		-webkit-touch-callout: none;
 		outline: none;
+		/* Stop the browser from interpreting a finger hold as a pan, zoom,
+		   or scroll gesture — those fire `pointercancel` on the tiniest
+		   drift, which used to abort the long-press. With touch-action:none
+		   combined with pointer capture in JS, only an intentional lift or
+		   a system interruption ends the press. */
+		touch-action: none;
 	}
 
 	.card.pressable:active {
