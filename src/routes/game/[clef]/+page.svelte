@@ -32,6 +32,14 @@
 	let advanceHandle = null;
 	let lastTick = 0;
 
+	// Reveal-mode press interaction:
+	//   short tap on the card → advance to the next note (no answer shown)
+	//   long press (≥ LONG_PRESS_MS) → show the answer + pause countdown
+	//     until release; release then advances to the next note
+	const LONG_PRESS_MS = 250;
+	let pressHandle = null;
+	let pressActive = false;
+
 	onMount(() => {
 		// Preload all images for this clef so transitions are instant
 		for (const n of pool) {
@@ -53,6 +61,66 @@
 		if (advanceHandle) {
 			clearTimeout(advanceHandle);
 			advanceHandle = null;
+		}
+		if (pressHandle) {
+			clearTimeout(pressHandle);
+			pressHandle = null;
+		}
+		pressActive = false;
+	}
+
+	function handleCardPointerDown() {
+		if (mode !== 'reveal') return;
+		// Pause everything that could change the screen while the user
+		// is holding: the countdown tick and any pending auto-advance.
+		if (tickHandle) {
+			cancelAnimationFrame(tickHandle);
+			tickHandle = null;
+		}
+		if (advanceHandle) {
+			clearTimeout(advanceHandle);
+			advanceHandle = null;
+		}
+		pressActive = true;
+		// Only schedule the reveal if the answer isn't already on screen
+		// (e.g. the countdown expired naturally just before the press).
+		if (feedback !== 'reveal') {
+			pressHandle = setTimeout(() => {
+				if (pressActive === false) return;
+				answered = true;
+				feedback = 'reveal';
+			}, LONG_PRESS_MS);
+		}
+	}
+
+	function handleCardPointerRelease() {
+		if (mode !== 'reveal') return;
+		if (pressActive === false) return;
+		pressActive = false;
+		if (pressHandle) {
+			clearTimeout(pressHandle);
+			pressHandle = null;
+		}
+		// Both short taps and long releases advance to the next image.
+		current = pickRound(pool, current.note.id);
+		startRound();
+	}
+
+	function handleCardKeyDown(e) {
+		if (mode !== 'reveal') return;
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			// Keyboard shortcut = quick-tap: skip to the next image.
+			if (tickHandle) {
+				cancelAnimationFrame(tickHandle);
+				tickHandle = null;
+			}
+			if (advanceHandle) {
+				clearTimeout(advanceHandle);
+				advanceHandle = null;
+			}
+			current = pickRound(pool, current.note.id);
+			startRound();
 		}
 	}
 
@@ -164,6 +232,15 @@
 		class="card"
 		class:flash-correct={feedback === 'correct'}
 		class:flash-wrong={feedback === 'wrong' || feedback === 'timeout'}
+		class:pressable={mode === 'reveal'}
+		role={mode === 'reveal' ? 'button' : undefined}
+		tabindex={mode === 'reveal' ? 0 : undefined}
+		aria-label={mode === 'reveal' ? 'Tap for next note, long-press to reveal the answer' : undefined}
+		on:pointerdown={handleCardPointerDown}
+		on:pointerup={handleCardPointerRelease}
+		on:pointercancel={handleCardPointerRelease}
+		on:pointerleave={handleCardPointerRelease}
+		on:keydown={handleCardKeyDown}
 	>
 		<img src={current.note.image} alt="Note to identify" draggable="false" />
 	</div>
@@ -319,6 +396,20 @@
 	.card.flash-wrong {
 		border-color: var(--wrong);
 		box-shadow: 0 0 0 4px color-mix(in srgb, var(--wrong) 35%, transparent);
+	}
+
+	/* Reveal mode: the card is tappable. Suppress iOS long-press callouts
+	   and text selection so holding doesn't pop a context menu. */
+	.card.pressable {
+		cursor: pointer;
+		user-select: none;
+		-webkit-user-select: none;
+		-webkit-touch-callout: none;
+		outline: none;
+	}
+
+	.card.pressable:active {
+		transform: scale(0.985);
 	}
 
 	.hint {
