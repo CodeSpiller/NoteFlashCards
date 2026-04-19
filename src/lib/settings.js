@@ -22,11 +22,16 @@ export const NOTE_NAMING_DEFAULT = 'letters';
 export const ANSWER_MODE_OPTIONS = ['buttons', 'reveal'];
 export const ANSWER_MODE_DEFAULT = 'buttons';
 
+// Notes the user has hidden from the rotation, keyed by clef id. Stored as
+// arrays (not Sets) so the value is plain JSON for localStorage.
+const HIDDEN_NOTES_DEFAULT = { treble: [], bass: [] };
+
 const DEFAULTS = {
 	timerSeconds: TIMER_DEFAULT,
 	feedbackSeconds: FEEDBACK_DEFAULT,
 	noteNaming: NOTE_NAMING_DEFAULT,
-	answerMode: ANSWER_MODE_DEFAULT
+	answerMode: ANSWER_MODE_DEFAULT,
+	hiddenNotes: { ...HIDDEN_NOTES_DEFAULT }
 };
 
 function clampStep(n, min, max, fallback) {
@@ -52,13 +57,28 @@ function clampAnswerMode(v) {
 	return ANSWER_MODE_OPTIONS.includes(v) ? v : ANSWER_MODE_DEFAULT;
 }
 
+function clampHiddenNotes(v) {
+	const out = { ...HIDDEN_NOTES_DEFAULT };
+	if (v && typeof v === 'object') {
+		for (const clefId of Object.keys(HIDDEN_NOTES_DEFAULT)) {
+			const arr = v[clefId];
+			if (Array.isArray(arr)) {
+				// Dedupe + coerce to strings; drop anything non-string.
+				out[clefId] = [...new Set(arr.filter((x) => typeof x === 'string'))];
+			}
+		}
+	}
+	return out;
+}
+
 function normalize(raw) {
-	const out = { ...DEFAULTS };
+	const out = { ...DEFAULTS, hiddenNotes: { ...HIDDEN_NOTES_DEFAULT } };
 	if (raw && typeof raw === 'object') {
 		if ('timerSeconds' in raw) out.timerSeconds = clampTimer(raw.timerSeconds);
 		if ('feedbackSeconds' in raw) out.feedbackSeconds = clampFeedback(raw.feedbackSeconds);
 		if ('noteNaming' in raw) out.noteNaming = clampNoteNaming(raw.noteNaming);
 		if ('answerMode' in raw) out.answerMode = clampAnswerMode(raw.answerMode);
+		if ('hiddenNotes' in raw) out.hiddenNotes = clampHiddenNotes(raw.hiddenNotes);
 	}
 	return out;
 }
@@ -131,8 +151,38 @@ function createSettings() {
 				return next;
 			});
 		},
+		/**
+		 * Flip the hidden state of a single note for the given clef.
+		 * Hidden notes are excluded from the game's rotation.
+		 */
+		toggleNoteHidden(clefId, noteId) {
+			update((v) => {
+				if (!(clefId in HIDDEN_NOTES_DEFAULT)) return v;
+				const cur = new Set(v.hiddenNotes?.[clefId] ?? []);
+				if (cur.has(noteId)) cur.delete(noteId);
+				else cur.add(noteId);
+				const next = {
+					...v,
+					hiddenNotes: { ...v.hiddenNotes, [clefId]: [...cur] }
+				};
+				save(next);
+				return next;
+			});
+		},
+		/** Clear every hidden note for the given clef. */
+		showAllNotes(clefId) {
+			update((v) => {
+				if (!(clefId in HIDDEN_NOTES_DEFAULT)) return v;
+				const next = {
+					...v,
+					hiddenNotes: { ...v.hiddenNotes, [clefId]: [] }
+				};
+				save(next);
+				return next;
+			});
+		},
 		reset() {
-			const next = { ...DEFAULTS };
+			const next = { ...DEFAULTS, hiddenNotes: { ...HIDDEN_NOTES_DEFAULT } };
 			save(next);
 			set(next);
 		}

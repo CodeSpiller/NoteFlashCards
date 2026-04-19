@@ -11,7 +11,15 @@
 	// plain const avoids the `$:`-runs-after-script trap that would leave
 	// `pool` undefined when we initialize `current` below.
 	const clef = data.clef;
-	const pool = clef.notes;
+
+	// Initial pool respects the user's hidden-note set for this clef.
+	// We also keep `pool` reactive so coming back from /manage/[clef]
+	// picks up any toggles on the *next* round without a manual reload.
+	const initialHidden = new Set(get(settings).hiddenNotes?.[clef.id] ?? []);
+	let pool = clef.notes.filter((n) => !initialHidden.has(n.id));
+	$: pool = clef.notes.filter(
+		(n) => !($settings.hiddenNotes?.[clef.id] ?? []).includes(n.id)
+	);
 
 	// Snapshot timer + feedback durations and answer mode at the start of each
 	// round so changes in Settings only take effect from the next round — the
@@ -21,7 +29,7 @@
 	let feedbackMs = Math.round(get(settings).feedbackSeconds * 1000);
 	let mode = get(settings).answerMode;
 
-	let current = pickRound(pool);
+	let current = pool.length ? pickRound(pool) : null;
 	let timeLeft = roundMs;
 	let score = { correct: 0, total: 0 };
 	let answered = false;
@@ -41,17 +49,32 @@
 	let pressActive = false;
 
 	onMount(() => {
-		// Preload all images for this clef so transitions are instant
-		for (const n of pool) {
+		// Preload all images for this clef so transitions are instant.
+		// Preload the *full* note set (not just the visible pool) — if the
+		// user un-hides notes later in /manage, those images are already
+		// warm in cache.
+		for (const n of clef.notes) {
 			const img = new Image();
 			img.src = n.image;
 		}
-		startRound();
+		if (pool.length) startRound();
 	});
 
 	onDestroy(() => {
 		stopTimers();
 	});
+
+	// Move to the next round. Safe against an empty pool (everything
+	// hidden) — callers don't need to guard.
+	function advance() {
+		if (!pool.length) {
+			current = null;
+			stopTimers();
+			return;
+		}
+		current = pickRound(pool, current?.note?.id ?? null);
+		startRound();
+	}
 
 	function stopTimers() {
 		if (tickHandle) {
@@ -117,8 +140,7 @@
 			pressHandle = null;
 		}
 		// Both short taps and long releases advance to the next image.
-		current = pickRound(pool, current.note.id);
-		startRound();
+		advance();
 	}
 
 	function handleCardKeyDown(e) {
@@ -133,8 +155,7 @@
 				clearTimeout(advanceHandle);
 				advanceHandle = null;
 			}
-			current = pickRound(pool, current.note.id);
-			startRound();
+			advance();
 		}
 	}
 
@@ -196,8 +217,7 @@
 
 	function scheduleNext() {
 		advanceHandle = setTimeout(() => {
-			current = pickRound(pool, current.note.id);
-			startRound();
+			advance();
 		}, feedbackMs);
 	}
 
@@ -219,15 +239,53 @@
 <header class="topbar">
 	<a class="back" href="{base}/" aria-label="Back to game modes">‹ Back</a>
 	<div class="title" aria-label="Current game mode">{clef.title}</div>
-	{#if mode === 'reveal'}
-		<div class="score" aria-hidden="true"></div>
-	{:else}
-		<div class="score">
-			<span class="score-num">{score.correct}</span>
-			<span class="score-sep">/</span>
-			<span class="score-num muted">{score.total}</span>
-		</div>
-	{/if}
+	<div class="right">
+		<a
+			class="manage"
+			href="{base}/manage/{clef.id}"
+			aria-label="Manage which notes appear in this game"
+			title="Manage notes"
+		>
+			<!-- Minimalist eye-open icon. Swaps to eye-off when any notes
+			     are hidden, so the topbar itself signals the filter state. -->
+			{#if ($settings.hiddenNotes?.[clef.id] ?? []).length > 0}
+				<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+					<g
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+						<path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+						<path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+						<line x1="2" y1="2" x2="22" y2="22" />
+					</g>
+				</svg>
+			{:else}
+				<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+					<g
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+						<circle cx="12" cy="12" r="3" />
+					</g>
+				</svg>
+			{/if}
+		</a>
+		{#if mode !== 'reveal'}
+			<div class="score">
+				<span class="score-num">{score.correct}</span>
+				<span class="score-sep">/</span>
+				<span class="score-num muted">{score.total}</span>
+			</div>
+		{/if}
+	</div>
 </header>
 
 <section class="timer-wrap" aria-label="Time left">
@@ -242,43 +300,55 @@
 </section>
 
 <main class="stage">
-	<div
-		class="card pressable"
-		class:flash-correct={feedback === 'correct'}
-		class:flash-wrong={feedback === 'wrong' || feedback === 'timeout'}
-		role="button"
-		tabindex="0"
-		aria-label="Tap for next note, long-press to reveal the answer"
-		on:pointerdown={handleCardPointerDown}
-		on:pointerup={handleCardPointerRelease}
-		on:pointercancel={handleCardPointerRelease}
-		on:keydown={handleCardKeyDown}
-		on:contextmenu|preventDefault
-		on:dragstart|preventDefault
-	>
-		<img src={current.note.image} alt="Note to identify" draggable="false" />
-	</div>
-	<!-- Fixed-height message slot so the image never shifts between states,
-	     regardless of mode or whether the (larger) reveal text is on screen. -->
-	<div class="msg-slot">
-		{#if feedback === 'reveal'}
-			<p class="reveal">answer is <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong></p>
-		{:else if feedback === 'timeout'}
-			<p class="hint wrong-hint">Time's up — it was <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong></p>
-		{:else if feedback === 'wrong'}
-			<p class="hint wrong-hint">Nope — it was <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong></p>
-		{:else if feedback === 'correct'}
-			<p class="hint correct-hint">Correct!</p>
-		{:else if mode === 'reveal'}
-			<!-- Intentionally empty: no "What note is this?" prompt when
-			     there are no answer buttons to tap. -->
-		{:else}
-			<p class="hint muted">What note is this?</p>
-		{/if}
-	</div>
+	{#if current}
+		<div
+			class="card pressable"
+			class:flash-correct={feedback === 'correct'}
+			class:flash-wrong={feedback === 'wrong' || feedback === 'timeout'}
+			role="button"
+			tabindex="0"
+			aria-label="Tap for next note, long-press to reveal the answer"
+			on:pointerdown={handleCardPointerDown}
+			on:pointerup={handleCardPointerRelease}
+			on:pointercancel={handleCardPointerRelease}
+			on:keydown={handleCardKeyDown}
+			on:contextmenu|preventDefault
+			on:dragstart|preventDefault
+		>
+			<img src={current.note.image} alt="Note to identify" draggable="false" />
+		</div>
+		<!-- Fixed-height message slot so the image never shifts between
+		     states, regardless of mode or whether the (larger) reveal
+		     text is on screen. -->
+		<div class="msg-slot">
+			{#if feedback === 'reveal'}
+				<p class="reveal">answer is <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong></p>
+			{:else if feedback === 'timeout'}
+				<p class="hint wrong-hint">Time's up — it was <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong></p>
+			{:else if feedback === 'wrong'}
+				<p class="hint wrong-hint">Nope — it was <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong></p>
+			{:else if feedback === 'correct'}
+				<p class="hint correct-hint">Correct!</p>
+			{:else if mode === 'reveal'}
+				<!-- Intentionally empty: no "What note is this?" prompt when
+				     there are no answer buttons to tap. -->
+			{:else}
+				<p class="hint muted">What note is this?</p>
+			{/if}
+		</div>
+	{:else}
+		<div class="empty-state">
+			<p class="empty-title">No notes selected</p>
+			<p class="empty-sub">
+				You've hidden every note in this clef. Tap below to choose some
+				again.
+			</p>
+			<a class="empty-cta" href="{base}/manage/{clef.id}">Manage notes</a>
+		</div>
+	{/if}
 </main>
 
-{#if mode !== 'reveal'}
+{#if current && mode !== 'reveal'}
 	<footer class="choices" class:solfege={$settings.noteNaming === 'solfege'}>
 		{#each current.options as letter}
 			<button
@@ -322,11 +392,37 @@
 		text-overflow: ellipsis;
 	}
 
+	.right {
+		justify-self: end;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.manage {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 36px;
+		border-radius: 10px;
+		color: var(--text-muted);
+		transition:
+			color 0.15s ease,
+			background 0.15s ease,
+			transform 0.08s ease;
+	}
+
+	.manage:active {
+		color: var(--text);
+		background: var(--bg-raised);
+		transform: scale(0.94);
+	}
+
 	.score {
 		font-variant-numeric: tabular-nums;
 		font-weight: 600;
 		font-size: 17px;
-		justify-self: end;
 	}
 
 	.score-num.muted {
@@ -554,5 +650,46 @@
 
 	.choice.dim {
 		opacity: 0.45;
+	}
+
+	.empty-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		gap: 10px;
+		padding: 40px 24px;
+		max-width: 360px;
+	}
+
+	.empty-title {
+		font-size: 20px;
+		font-weight: 700;
+		margin: 0;
+	}
+
+	.empty-sub {
+		color: var(--text-muted);
+		font-size: 14px;
+		line-height: 1.5;
+		margin: 0;
+	}
+
+	.empty-cta {
+		margin-top: 8px;
+		padding: 12px 22px;
+		border-radius: 14px;
+		background: var(--accent);
+		color: #0f172a;
+		font-weight: 600;
+		font-size: 15px;
+		transition:
+			transform 0.08s ease,
+			background 0.15s ease;
+	}
+
+	.empty-cta:active {
+		transform: scale(0.97);
+		background: var(--accent-hover);
 	}
 </style>
