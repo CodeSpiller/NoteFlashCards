@@ -16,9 +16,7 @@
 
 <main class="body">
 	<p class="hint">
-		Rotate your phone to landscape for the clearest view. If nothing turns,
-		make sure <strong>auto-rotate</strong> is enabled (or disable your
-		rotation lock).
+		Enable rotation lock on your phone to improve readability.
 	</p>
 
 	<div
