@@ -70,9 +70,9 @@
 	}
 
 	function handleCardPointerDown() {
-		if (mode !== 'reveal') return;
 		// Pause everything that could change the screen while the user
 		// is holding: the countdown tick and any pending auto-advance.
+		// This works in both answer modes.
 		if (tickHandle) {
 			cancelAnimationFrame(tickHandle);
 			tickHandle = null;
@@ -83,18 +83,20 @@
 		}
 		pressActive = true;
 		// Only schedule the reveal if the answer isn't already on screen
-		// (e.g. the countdown expired naturally just before the press).
+		// (e.g. the countdown expired naturally just before the press, or
+		// the user already tapped a button in buttons mode).
 		if (feedback !== 'reveal') {
 			pressHandle = setTimeout(() => {
 				if (pressActive === false) return;
 				answered = true;
+				// Use the neutral reveal display regardless of mode so the
+				// card doesn't suddenly turn red/green from a prior answer.
 				feedback = 'reveal';
 			}, LONG_PRESS_MS);
 		}
 	}
 
 	function handleCardPointerRelease() {
-		if (mode !== 'reveal') return;
 		if (pressActive === false) return;
 		pressActive = false;
 		if (pressHandle) {
@@ -107,7 +109,6 @@
 	}
 
 	function handleCardKeyDown(e) {
-		if (mode !== 'reveal') return;
 		if (e.key === 'Enter' || e.key === ' ') {
 			e.preventDefault();
 			// Keyboard shortcut = quick-tap: skip to the next image.
@@ -229,13 +230,12 @@
 
 <main class="stage">
 	<div
-		class="card"
+		class="card pressable"
 		class:flash-correct={feedback === 'correct'}
 		class:flash-wrong={feedback === 'wrong' || feedback === 'timeout'}
-		class:pressable={mode === 'reveal'}
-		role={mode === 'reveal' ? 'button' : undefined}
-		tabindex={mode === 'reveal' ? 0 : undefined}
-		aria-label={mode === 'reveal' ? 'Tap for next note, long-press to reveal the answer' : undefined}
+		role="button"
+		tabindex="0"
+		aria-label="Tap for next note, long-press to reveal the answer"
 		on:pointerdown={handleCardPointerDown}
 		on:pointerup={handleCardPointerRelease}
 		on:pointercancel={handleCardPointerRelease}
@@ -244,21 +244,24 @@
 	>
 		<img src={current.note.image} alt="Note to identify" draggable="false" />
 	</div>
-	{#if mode === 'reveal'}
-		<!-- Always reserve the reveal-sized slot so the image doesn't
-		     jump up when the answer text appears at the end of the timer. -->
-		<p class="reveal" class:reveal-hidden={feedback !== 'reveal'} aria-hidden={feedback !== 'reveal'}>
-			answer is <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong>
-		</p>
-	{:else if feedback === 'timeout'}
-		<p class="hint wrong-hint">Time's up — it was <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong></p>
-	{:else if feedback === 'wrong'}
-		<p class="hint wrong-hint">Nope — it was <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong></p>
-	{:else if feedback === 'correct'}
-		<p class="hint correct-hint">Correct!</p>
-	{:else}
-		<p class="hint muted">What note is this?</p>
-	{/if}
+	<!-- Fixed-height message slot so the image never shifts between states,
+	     regardless of mode or whether the (larger) reveal text is on screen. -->
+	<div class="msg-slot">
+		{#if feedback === 'reveal'}
+			<p class="reveal">answer is <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong></p>
+		{:else if feedback === 'timeout'}
+			<p class="hint wrong-hint">Time's up — it was <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong></p>
+		{:else if feedback === 'wrong'}
+			<p class="hint wrong-hint">Nope — it was <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong></p>
+		{:else if feedback === 'correct'}
+			<p class="hint correct-hint">Correct!</p>
+		{:else if mode === 'reveal'}
+			<!-- Intentionally empty: no "What note is this?" prompt when
+			     there are no answer buttons to tap. -->
+		{:else}
+			<p class="hint muted">What note is this?</p>
+		{/if}
+	</div>
 </main>
 
 {#if mode !== 'reveal'}
@@ -447,13 +450,19 @@
 		margin-left: 2px;
 	}
 
-	/* During the countdown in reveal mode we still render the reveal text
-	   (with the real answer) so the slot occupies the exact same height,
-	   but we make it invisible so the note isn't spoiled. `visibility:
-	   hidden` preserves layout; it's also not announced to screen
-	   readers. */
-	.reveal-hidden {
-		visibility: hidden;
+	/* Fixed slot beneath the card. Large enough to fit the tallest child
+	   (.reveal), so swapping between hint / reveal / correct / wrong /
+	   timeout / empty never shifts the card above. */
+	.msg-slot {
+		min-height: 44px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.msg-slot .hint,
+	.msg-slot .reveal {
+		margin: 0;
 	}
 
 	.choices {
