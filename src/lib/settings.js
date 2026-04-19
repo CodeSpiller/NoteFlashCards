@@ -8,31 +8,57 @@ export const TIMER_MAX = 10.0;
 export const TIMER_STEP = 0.1;
 export const TIMER_DEFAULT = 3.0;
 
+// How long the "answer reveal" / feedback pause lasts between rounds.
+export const FEEDBACK_MIN = 0.2;
+export const FEEDBACK_MAX = 3.0;
+export const FEEDBACK_STEP = 0.1;
+export const FEEDBACK_DEFAULT = 0.7;
+
 export const NOTE_NAMING_OPTIONS = ['letters', 'solfege'];
 export const NOTE_NAMING_DEFAULT = 'letters';
 
+// `buttons` = tap one of two choices. `reveal` = no buttons; the answer
+// is simply shown in white when the timer runs out.
+export const ANSWER_MODE_OPTIONS = ['buttons', 'reveal'];
+export const ANSWER_MODE_DEFAULT = 'buttons';
+
 const DEFAULTS = {
 	timerSeconds: TIMER_DEFAULT,
-	noteNaming: NOTE_NAMING_DEFAULT
+	feedbackSeconds: FEEDBACK_DEFAULT,
+	noteNaming: NOTE_NAMING_DEFAULT,
+	answerMode: ANSWER_MODE_DEFAULT
 };
 
-function clampTimer(n) {
+function clampStep(n, min, max, fallback) {
 	const v = Number(n);
-	if (Number.isNaN(v)) return TIMER_DEFAULT;
-	// snap to 0.1 and clamp to [min, max]
+	if (Number.isNaN(v)) return fallback;
 	const snapped = Math.round(v * 10) / 10;
-	return Math.min(TIMER_MAX, Math.max(TIMER_MIN, snapped));
+	return Math.min(max, Math.max(min, snapped));
+}
+
+function clampTimer(n) {
+	return clampStep(n, TIMER_MIN, TIMER_MAX, TIMER_DEFAULT);
+}
+
+function clampFeedback(n) {
+	return clampStep(n, FEEDBACK_MIN, FEEDBACK_MAX, FEEDBACK_DEFAULT);
 }
 
 function clampNoteNaming(v) {
 	return NOTE_NAMING_OPTIONS.includes(v) ? v : NOTE_NAMING_DEFAULT;
 }
 
+function clampAnswerMode(v) {
+	return ANSWER_MODE_OPTIONS.includes(v) ? v : ANSWER_MODE_DEFAULT;
+}
+
 function normalize(raw) {
 	const out = { ...DEFAULTS };
 	if (raw && typeof raw === 'object') {
 		if ('timerSeconds' in raw) out.timerSeconds = clampTimer(raw.timerSeconds);
+		if ('feedbackSeconds' in raw) out.feedbackSeconds = clampFeedback(raw.feedbackSeconds);
 		if ('noteNaming' in raw) out.noteNaming = clampNoteNaming(raw.noteNaming);
+		if ('answerMode' in raw) out.answerMode = clampAnswerMode(raw.answerMode);
 	}
 	return out;
 }
@@ -77,9 +103,30 @@ function createSettings() {
 				return next;
 			});
 		},
+		setFeedbackSeconds(s) {
+			update((v) => {
+				const next = { ...v, feedbackSeconds: clampFeedback(s) };
+				save(next);
+				return next;
+			});
+		},
+		adjustFeedback(deltaSeconds) {
+			update((v) => {
+				const next = { ...v, feedbackSeconds: clampFeedback(v.feedbackSeconds + deltaSeconds) };
+				save(next);
+				return next;
+			});
+		},
 		setNoteNaming(naming) {
 			update((v) => {
 				const next = { ...v, noteNaming: clampNoteNaming(naming) };
+				save(next);
+				return next;
+			});
+		},
+		setAnswerMode(mode) {
+			update((v) => {
+				const next = { ...v, answerMode: clampAnswerMode(mode) };
 				save(next);
 				return next;
 			});

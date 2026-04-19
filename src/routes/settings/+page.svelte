@@ -1,10 +1,20 @@
 <script>
 	import { base } from '$app/paths';
-	import { settings, TIMER_MIN, TIMER_MAX, TIMER_STEP } from '$lib/settings.js';
+	import {
+		settings,
+		TIMER_MIN,
+		TIMER_MAX,
+		TIMER_STEP,
+		FEEDBACK_MIN,
+		FEEDBACK_MAX,
+		FEEDBACK_STEP
+	} from '$lib/settings.js';
 	import { LETTER_TO_SOLFEGE } from '$lib/notes.js';
 
 	$: timer = $settings.timerSeconds;
+	$: feedback = $settings.feedbackSeconds;
 	$: naming = $settings.noteNaming;
+	$: mode = $settings.answerMode;
 
 	function dec() {
 		settings.adjustTimer(-TIMER_STEP);
@@ -15,6 +25,15 @@
 	function onSlider(e) {
 		settings.setTimerSeconds(Number(e.currentTarget.value));
 	}
+	function fbDec() {
+		settings.adjustFeedback(-FEEDBACK_STEP);
+	}
+	function fbInc() {
+		settings.adjustFeedback(FEEDBACK_STEP);
+	}
+	function onFeedbackSlider(e) {
+		settings.setFeedbackSeconds(Number(e.currentTarget.value));
+	}
 	function reset() {
 		settings.reset();
 	}
@@ -22,6 +41,10 @@
 	$: atMin = timer <= TIMER_MIN + 1e-6;
 	$: atMax = timer >= TIMER_MAX - 1e-6;
 	$: timerLabel = timer.toFixed(1);
+
+	$: fbAtMin = feedback <= FEEDBACK_MIN + 1e-6;
+	$: fbAtMax = feedback >= FEEDBACK_MAX - 1e-6;
+	$: feedbackLabel = feedback.toFixed(1);
 </script>
 
 <header class="topbar">
@@ -86,6 +109,94 @@
 					{preset.toFixed(1)}s
 				</button>
 			{/each}
+		</div>
+	</section>
+
+	<section class="card">
+		<div class="section-head">
+			<h2>Answer reveal</h2>
+			<p>Seconds the answer stays on screen before the next note.</p>
+		</div>
+
+		<div class="stepper">
+			<button
+				class="step-btn"
+				on:click={fbDec}
+				disabled={fbAtMin}
+				aria-label="Decrease reveal duration by 0.1 seconds"
+			>
+				−
+			</button>
+			<div class="value">
+				<span class="value-num">{feedbackLabel}</span>
+				<span class="value-unit">s</span>
+			</div>
+			<button
+				class="step-btn"
+				on:click={fbInc}
+				disabled={fbAtMax}
+				aria-label="Increase reveal duration by 0.1 seconds"
+			>
+				+
+			</button>
+		</div>
+
+		<input
+			class="slider"
+			type="range"
+			min={FEEDBACK_MIN}
+			max={FEEDBACK_MAX}
+			step={FEEDBACK_STEP}
+			value={feedback}
+			on:input={onFeedbackSlider}
+			aria-label="Answer reveal duration in seconds"
+		/>
+
+		<div class="range-labels">
+			<span>{FEEDBACK_MIN.toFixed(1)}s</span>
+			<span>{FEEDBACK_MAX.toFixed(1)}s</span>
+		</div>
+
+		<div class="presets">
+			{#each [0.3, 0.7, 1.5, 2.5] as preset}
+				<button
+					class="preset"
+					class:active={Math.abs(feedback - preset) < 1e-6}
+					on:click={() => settings.setFeedbackSeconds(preset)}
+				>
+					{preset.toFixed(1)}s
+				</button>
+			{/each}
+		</div>
+	</section>
+
+	<section class="card">
+		<div class="section-head">
+			<h2>Answer mode</h2>
+			<p>Tap to answer, or just watch the answer appear.</p>
+		</div>
+
+		<div class="segmented" role="radiogroup" aria-label="Answer mode">
+			<button
+				class="seg"
+				class:active={mode === 'buttons'}
+				role="radio"
+				aria-checked={mode === 'buttons'}
+				on:click={() => settings.setAnswerMode('buttons')}
+			>
+				<span class="seg-title">Buttons</span>
+				<span class="seg-sub">pick one of two</span>
+			</button>
+			<button
+				class="seg"
+				class:active={mode === 'reveal'}
+				role="radio"
+				aria-checked={mode === 'reveal'}
+				on:click={() => settings.setAnswerMode('reveal')}
+			>
+				<span class="seg-title">Reveal only</span>
+				<span class="seg-sub">show the answer</span>
+			</button>
 		</div>
 	</section>
 

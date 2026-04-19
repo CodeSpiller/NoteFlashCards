@@ -13,17 +13,19 @@
 	const clef = data.clef;
 	const pool = clef.notes;
 
-	const FEEDBACK_MS = 700;
-
-	// Snapshot timer at the start of each round so changes in Settings only take
-	// effect from the next round — the active countdown doesn't jump mid-flight.
+	// Snapshot timer + feedback durations and answer mode at the start of each
+	// round so changes in Settings only take effect from the next round — the
+	// active countdown doesn't jump mid-flight and the mode doesn't swap while
+	// a round is in progress.
 	let roundMs = Math.round(get(settings).timerSeconds * 1000);
+	let feedbackMs = Math.round(get(settings).feedbackSeconds * 1000);
+	let mode = get(settings).answerMode;
 
 	let current = pickRound(pool);
 	let timeLeft = roundMs;
 	let score = { correct: 0, total: 0 };
 	let answered = false;
-	let feedback = null; // null | 'correct' | 'wrong' | 'timeout'
+	let feedback = null; // null | 'correct' | 'wrong' | 'timeout' | 'reveal'
 	let chosen = null;
 
 	let tickHandle = null;
@@ -59,8 +61,11 @@
 		answered = false;
 		feedback = null;
 		chosen = null;
-		// Pick up any settings change that happened between rounds
-		roundMs = Math.round(get(settings).timerSeconds * 1000);
+		// Pick up any settings changes that happened between rounds
+		const s = get(settings);
+		roundMs = Math.round(s.timerSeconds * 1000);
+		feedbackMs = Math.round(s.feedbackSeconds * 1000);
+		mode = s.answerMode;
 		timeLeft = roundMs;
 		lastTick = performance.now();
 		tickHandle = requestAnimationFrame(tick);
@@ -80,8 +85,13 @@
 	function handleTimeout() {
 		if (answered) return;
 		answered = true;
-		feedback = 'timeout';
-		score = { ...score, total: score.total + 1 };
+		if (mode === 'reveal') {
+			// Passive viewing mode — no buttons, no score, just show the answer.
+			feedback = 'reveal';
+		} else {
+			feedback = 'timeout';
+			score = { ...score, total: score.total + 1 };
+		}
 		scheduleNext();
 	}
 
@@ -106,7 +116,7 @@
 		advanceHandle = setTimeout(() => {
 			current = pickRound(pool, current.note.id);
 			startRound();
-		}, FEEDBACK_MS);
+		}, feedbackMs);
 	}
 
 	$: timerPct = Math.max(0, Math.min(100, (timeLeft / roundMs) * 100));
@@ -127,11 +137,15 @@
 <header class="topbar">
 	<a class="back" href="{base}/" aria-label="Back to game modes">‹ Back</a>
 	<div class="title" aria-label="Current game mode">{clef.title}</div>
-	<div class="score">
-		<span class="score-num">{score.correct}</span>
-		<span class="score-sep">/</span>
-		<span class="score-num muted">{score.total}</span>
-	</div>
+	{#if mode === 'reveal'}
+		<div class="score" aria-hidden="true"></div>
+	{:else}
+		<div class="score">
+			<span class="score-num">{score.correct}</span>
+			<span class="score-sep">/</span>
+			<span class="score-num muted">{score.total}</span>
+		</div>
+	{/if}
 </header>
 
 <section class="timer-wrap" aria-label="Time left">
@@ -153,28 +167,34 @@
 	>
 		<img src={current.note.image} alt="Note to identify" draggable="false" />
 	</div>
-	{#if feedback === 'timeout'}
+	{#if feedback === 'reveal'}
+		<p class="reveal">answer is <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong></p>
+	{:else if feedback === 'timeout'}
 		<p class="hint wrong-hint">Time's up — it was <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong></p>
 	{:else if feedback === 'wrong'}
 		<p class="hint wrong-hint">Nope — it was <strong>{displayName(current.note.letter, $settings.noteNaming)}</strong></p>
 	{:else if feedback === 'correct'}
 		<p class="hint correct-hint">Correct!</p>
+	{:else if mode === 'reveal'}
+		<p class="hint muted">&nbsp;</p>
 	{:else}
 		<p class="hint muted">What note is this?</p>
 	{/if}
 </main>
 
-<footer class="choices" class:solfege={$settings.noteNaming === 'solfege'}>
-	{#each current.options as letter}
-		<button
-			class="choice {buttonClass(letter)}"
-			on:click={() => handleChoice(letter)}
-			disabled={answered}
-		>
-			{displayName(letter, $settings.noteNaming)}
-		</button>
-	{/each}
-</footer>
+{#if mode !== 'reveal'}
+	<footer class="choices" class:solfege={$settings.noteNaming === 'solfege'}>
+		{#each current.options as letter}
+			<button
+				class="choice {buttonClass(letter)}"
+				on:click={() => handleChoice(letter)}
+				disabled={answered}
+			>
+				{displayName(letter, $settings.noteNaming)}
+			</button>
+		{/each}
+	</footer>
+{/if}
 
 <style>
 	.topbar {
@@ -316,6 +336,22 @@
 
 	.hint.wrong-hint {
 		color: var(--wrong);
+	}
+
+	.reveal {
+		color: #ffffff;
+		font-size: 24px;
+		font-weight: 600;
+		letter-spacing: 0.01em;
+		text-align: center;
+		min-height: 32px;
+		margin-top: 4px;
+	}
+
+	.reveal strong {
+		font-size: 30px;
+		font-weight: 800;
+		margin-left: 2px;
 	}
 
 	.choices {
