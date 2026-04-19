@@ -19,6 +19,14 @@
 			href: `${base}/game/bass`
 		},
 		{
+			id: 'legend',
+			title: 'Note legend',
+			subtitle: 'All notes, treble + bass. Turn off auto-rotate lock and rotate your phone for best readability.',
+			icon: '𝄞𝄢',
+			available: true,
+			href: `${base}/legend`
+		},
+		{
 			id: 'intervals',
 			title: 'Intervals',
 			subtitle: 'Coming soon',
