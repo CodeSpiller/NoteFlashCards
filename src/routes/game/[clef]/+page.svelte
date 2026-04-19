@@ -96,6 +96,11 @@
 		if (feedback !== 'reveal') {
 			pressHandle = setTimeout(() => {
 				if (pressActive === false) return;
+				// If the countdown expired between pointerdown and this
+				// timeout, handleTimeout already set `answered` + feedback.
+				// Don't stomp on that state — the user will see whatever
+				// reveal/timeout is already on screen until they release.
+				if (answered) return;
 				answered = true;
 				// Use the neutral reveal display regardless of mode so the
 				// card doesn't suddenly turn red/green from a prior answer.
@@ -438,6 +443,15 @@
 
 	.card.pressable:active {
 		transform: scale(0.985);
+	}
+
+	/* Keyboard users: restore a visible focus ring. The card is a
+	   role="button" tabindex="0" element, so losing the outline would
+	   make it impossible to see where focus is. We only render it for
+	   :focus-visible so mouse/touch users don't see a ring on click. */
+	.card.pressable:focus-visible {
+		outline: 3px solid var(--accent);
+		outline-offset: 3px;
 	}
 
 	.hint {

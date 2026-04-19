@@ -25,13 +25,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - name: Install
-        # Using `install` (not `ci`) so the lockfile is generated on first
-        # run. After the first successful deploy, commit the resulting
-        # package-lock.json and switch this back to `npm ci` for faster,
-        # reproducible builds.
-        run: npm install --no-audit --no-fund
+        # Reproducible install from the committed package-lock.json.
+        run: npm ci --no-audit --no-fund
 
       - name: Build
         env:
